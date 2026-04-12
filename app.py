@@ -2,12 +2,19 @@ from flask import Flask, render_template, request
 from groq import Groq
 import subprocess
 import os
-from groq import Groq
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))  # ⚠️ depois você pode mover pra variável de ambiente
+# ------------------------
+# APP FLASK
+# ------------------------
+app = Flask(__name__)
+
+# 🔐 API KEY vinda do Render (variável de ambiente)
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
-# 🔊 gera áudio SÍNCRONO
+# ------------------------
+# ÁUDIO (Edge TTS)
+# ------------------------
 def gerar_audio(texto):
     try:
         if not os.path.exists("static"):
@@ -29,6 +36,9 @@ def gerar_audio(texto):
         return None
 
 
+# ------------------------
+# ROTA PRINCIPAL
+# ------------------------
 @app.route("/", methods=["GET", "POST"])
 def home():
     resposta = ""
@@ -47,7 +57,7 @@ def home():
                 messages=[
                     {
                         "role": "system",
-                        "content": "Responda apenas a pergunta atual de forma direta e natural. Não use histórico."
+                        "content": "Responda de forma direta, natural e sem usar histórico."
                     },
                     {
                         "role": "user",
@@ -62,7 +72,7 @@ def home():
             resposta = chat.choices[0].message.content
             print("🤖 resposta:", resposta)
 
-            # 🔥 gera áudio antes de responder
+            # 🔊 gera áudio
             audio = gerar_audio(resposta)
 
         except Exception as e:
@@ -71,6 +81,8 @@ def home():
     return render_template("index.html", resposta=resposta, audio=audio)
 
 
-# ☁️ IMPORTANTE: compatível com Render / nuvem
+# ------------------------
+# EXECUÇÃO LOCAL
+# ------------------------
 if __name__ == "__main__":
     app.run()
