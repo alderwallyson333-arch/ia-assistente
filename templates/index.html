@@ -18,6 +18,7 @@ body {
 
 .container {
     text-align: center;
+    width: 300px;
 }
 
 .avatar {
@@ -26,36 +27,32 @@ body {
     background: #2563eb;
     border-radius: 50%;
     margin: auto;
-    transition: 0.3s;
 }
 
-.ouvindo {
-    background: #22c55e;
-    box-shadow: 0 0 30px #22c55e;
-}
+.ouvindo { background: #22c55e; }
+.processando { background: #f59e0b; }
 
-.processando {
-    background: #f59e0b;
-    box-shadow: 0 0 30px #f59e0b;
-}
-
-.inativo {
-    background: #2563eb;
+input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    border-radius: 8px;
+    border: none;
 }
 
 button {
-    margin-top: 15px;
-    padding: 12px;
-    border-radius: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
     border: none;
     background: #2563eb;
     color: white;
+    width: 100%;
 }
 
 #status {
     margin-top: 10px;
     font-size: 14px;
-    opacity: 0.8;
 }
 </style>
 
@@ -65,68 +62,77 @@ button {
 
 <div class="container">
 
-    <div id="avatar" class="avatar inativo"></div>
+    <div id="avatar" class="avatar"></div>
 
-    <p id="status">Inativo</p>
+    <p id="status">Pronto</p>
 
-    <button onclick="iniciar()">▶️ Iniciar</button>
-    <button onclick="parar()">⏹️ Parar</button>
+    <!-- MODO 1 -->
+    <input id="texto" placeholder="Digite sua pergunta">
+    <button onclick="modoTexto()">Enviar</button>
+
+    <!-- MODO 2 -->
+    <button onclick="modoMicrofone()">🎤 Falar uma vez</button>
+
+    <!-- MODO 3 -->
+    <button onclick="toggleContinuo()">🔁 Conversa contínua OFF</button>
 
 </div>
 
 <script>
-let isActive = false;
+let recognition = new webkitSpeechRecognition();
+
+let isContinuous = false;
 let isListening = false;
 let isSpeaking = false;
 
-let recognition = new webkitSpeechRecognition();
-
 const avatar = document.getElementById("avatar");
 const statusText = document.getElementById("status");
+const btnContinuo = document.querySelectorAll("button")[2];
 
-// CONFIG
 recognition.lang = "pt-BR";
 recognition.continuous = false;
 recognition.interimResults = false;
 
-// ▶️ INICIAR
-function iniciar() {
-    if (isActive) return;
+// =======================
+// 🔹 MODO 1 (TEXTO)
+// =======================
+function modoTexto() {
+    if (isSpeaking) return;
 
-    isActive = true;
-    iniciarReconhecimento();
+    const texto = document.getElementById("texto").value;
+    if (!texto) return;
+
+    enviarPergunta(texto);
 }
 
-// ⏹️ PARAR
-function parar() {
-    isActive = false;
+// =======================
+// 🔹 MODO 2 (MICROFONE)
+// =======================
+function modoMicrofone() {
+    if (isListening || isSpeaking) return;
 
-    if (recognition) recognition.abort();
-
-    atualizarEstado("inativo", "Inativo");
+    recognition.start();
 }
 
-// 🎤 INICIAR RECONHECIMENTO
-function iniciarReconhecimento() {
-    if (!isActive || isListening || isSpeaking) return;
+// =======================
+// 🔹 MODO 3 (CONTÍNUO)
+// =======================
+function toggleContinuo() {
+    isContinuous = !isContinuous;
 
-    try {
-        recognition.start();
-    } catch (e) {
-        return;
-    }
+    btnContinuo.innerText = isContinuous
+        ? "🔁 Conversa contínua ON"
+        : "🔁 Conversa contínua OFF";
+
+    if (isContinuous) iniciarLoop();
 }
 
-// 🔄 ESTADO VISUAL
-function atualizarEstado(classe, texto) {
-    avatar.className = "avatar " + classe;
-    statusText.innerText = texto;
-}
-
-// 🎤 EVENTOS
+// =======================
+// 🎤 EVENTOS VOZ
+// =======================
 recognition.onstart = () => {
     isListening = true;
-    atualizarEstado("ouvindo", "Estou ouvindo...");
+    atualizarEstado("ouvindo", "Ouvindo...");
 };
 
 recognition.onresult = (event) => {
@@ -135,69 +141,63 @@ recognition.onresult = (event) => {
     enviarPergunta(texto);
 };
 
-recognition.onerror = () => {
-    isListening = false;
-    reiniciar();
-};
-
 recognition.onend = () => {
     isListening = false;
+
+    if (isContinuous && !isSpeaking) {
+        iniciarLoop();
+    }
 };
 
+// =======================
 // 🚀 ENVIO
+// =======================
 function enviarPergunta(texto) {
-    if (!isActive) return;
-
     isSpeaking = true;
     atualizarEstado("processando", "Pensando...");
 
     fetch("/perguntar", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: "mensagem=" + encodeURIComponent(texto)
     })
     .then(res => res.json())
     .then(data => {
 
-        if (data.audio) {
-            const audio = new Audio(data.audio);
+        const audio = new Audio(data.audio);
 
-            setTimeout(() => {
-                audio.play().catch(() => {
-                    isSpeaking = false;
-                    reiniciar();
-                });
-            }, 300);
+        setTimeout(() => {
+            audio.play();
+        }, 300);
 
-            audio.onended = () => {
-                isSpeaking = false;
-                reiniciar();
-            };
-        } else {
+        audio.onended = () => {
             isSpeaking = false;
-            reiniciar();
-        }
 
-        atualizarEstado("inativo", "Aguardando...");
-    })
-    .catch(() => {
-        isSpeaking = false;
-        reiniciar();
+            if (isContinuous) iniciarLoop();
+            else atualizarEstado("", "Pronto");
+        };
     });
 }
 
-// 🔁 LOOP CONTROLADO
-function reiniciar() {
-    if (!isActive) {
-        atualizarEstado("inativo", "Inativo");
-        return;
-    }
+// =======================
+// 🔁 LOOP CONTÍNUO
+// =======================
+function iniciarLoop() {
+    if (!isContinuous || isListening || isSpeaking) return;
 
     setTimeout(() => {
-        iniciarReconhecimento();
+        try {
+            recognition.start();
+        } catch(e){}
     }, 500);
+}
+
+// =======================
+// 🎨 UI
+// =======================
+function atualizarEstado(classe, texto) {
+    avatar.className = "avatar " + classe;
+    statusText.innerText = texto;
 }
 </script>
 
