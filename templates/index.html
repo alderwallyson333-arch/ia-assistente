@@ -10,47 +10,67 @@ body {
     font-family: Arial;
     background: #0f172a;
     color: white;
+
+    display: flex;
+    justify-content: center;   /* horizontal */
+    align-items: center;       /* vertical */
+    height: 100vh;
 }
 
-.header {
+/* caixa principal */
+.container {
+    width: 90%;
+    max-width: 400px;
+    background: #111827;
+    border-radius: 15px;
     padding: 15px;
-    background: #1a1a1a;
-    text-align: center;
-    font-weight: bold;
 }
 
+/* título */
+.header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* chat */
 .chat {
-    padding: 10px;
+    min-height: 100px;
+    margin-bottom: 10px;
 }
 
 .bot {
-    background: #1a1a1a;
-    padding: 12px;
-    border-radius: 12px;
+    background: #1f2937;
+    padding: 10px;
+    border-radius: 10px;
     margin-bottom: 10px;
-    max-width: 85%;
 }
 
+/* área de input */
 .input-area {
     display: flex;
-    padding: 10px;
-    background: #1a1a1a;
-    gap: 8px;
+    gap: 5px;
 }
 
 input {
     flex: 1;
-    padding: 12px;
+    padding: 10px;
     border-radius: 8px;
     border: none;
 }
 
 button {
-    padding: 12px;
-    border-radius: 8px;
+    padding: 10px;
     border: none;
-    background: #2b6cff;
+    border-radius: 8px;
+    background: #2563eb;
     color: white;
+    font-weight: bold;
+}
+
+/* botão de voz separado */
+.voice-btn {
+    margin-top: 10px;
+    width: 100%;
 }
 </style>
 
@@ -58,26 +78,32 @@ button {
 
 <body>
 
-<div class="header">🤖 IA Assistente</div>
+<div class="container">
 
-<div class="chat">
-    {% if resposta %}
-        <div class="bot">{{ resposta }}</div>
+    <div class="header">
+        🤖 IA Assistente
+    </div>
+
+    <div class="chat">
+        {% if resposta %}
+            <div class="bot">{{ resposta }}</div>
+        {% endif %}
+    </div>
+
+    <form method="POST" class="input-area">
+        <input type="text" name="mensagem" id="mensagem" placeholder="Digite ou fale..." required>
+        <button type="submit">Enviar</button>
+    </form>
+
+    <button class="voice-btn" onclick="falar()">🎤 Falar</button>
+
+    {% if audio %}
+    <audio id="audio">
+        <source src="{{ audio }}" type="audio/mp3">
+    </audio>
     {% endif %}
+
 </div>
-
-<form method="POST" class="input-area">
-    <input type="text" name="mensagem" id="mensagem" placeholder="Digite ou fale..." required>
-    <button type="submit">Enviar</button>
-</form>
-
-<button onclick="falar()">🎤 Falar</button>
-
-{% if audio %}
-<audio id="audio">
-    <source src="{{ audio }}" type="audio/mp3">
-</audio>
-{% endif %}
 
 <script>
 function falar() {
@@ -92,7 +118,7 @@ function falar() {
     recognition.start();
 }
 
-// 🔊 GARANTIR 1 ÁUDIO APENAS
+// tocar áudio uma vez
 window.onload = function() {
     const audio = document.getElementById("audio");
     if (audio) {
