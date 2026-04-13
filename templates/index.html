@@ -106,19 +106,41 @@ button {
 </div>
 
 <script>
+let reconhecendo = false;
+
 function falar() {
     const recognition = new webkitSpeechRecognition();
     recognition.lang = "pt-BR";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    reconhecendo = true;
 
     recognition.onresult = function(event) {
-        document.getElementById("mensagem").value =
-            event.results[0][0].transcript;
+        const texto = event.results[0][0].transcript;
+
+        // coloca no input (opcional)
+        const input = document.getElementById("mensagem");
+        if (input) input.value = texto;
+
+        // 🔥 ENVIA AUTOMATICAMENTE
+        fetch("/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: "mensagem=" + encodeURIComponent(texto)
+        }).then(() => location.reload());
+    };
+
+    recognition.onend = function() {
+        reconhecendo = false;
     };
 
     recognition.start();
 }
 
-// tocar áudio uma vez
+// 🔊 tocar áudio uma vez
 window.onload = function() {
     const audio = document.getElementById("audio");
     if (audio) {
