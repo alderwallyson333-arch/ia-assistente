@@ -6,14 +6,35 @@
 
 <style>
 body {
+    margin: 0;
     font-family: Arial;
     background: #0f172a;
     color: white;
-    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.header {
+    padding: 15px;
+    background: #1a1a1a;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
 }
 
 .chat {
-    padding: 15px;
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.bot {
+    background: #1a1a1a;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 85%;
 }
 
 .user {
@@ -25,16 +46,88 @@ body {
     margin-left: auto;
 }
 
-.bot {
-    background: #1a1a1a;
-    padding: 12px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    max-width: 85%;
-}
-
 .input-area {
     display: flex;
+    padding: 10px;
+    background: #1a1a1a;
+    gap: 8px;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    outline: none;
+}
+
+button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #2b6cff;
+    color: white;
+    font-weight: bold;
+}
+
+.voice-btn {
+    margin: 10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">🤖 IA Assistente</div>
+
+<div class="chat">
+    {% if resposta %}
+        <div class="bot">{{ resposta }}</div>
+    {% endif %}
+</div>
+
+<form method="POST" class="input-area">
+    <input type="text" name="mensagem" id="mensagem" placeholder="Digite ou fale..." required>
+    <button type="submit">Enviar</button>
+</form>
+
+<button class="voice-btn" onclick="falar()">🎤 Falar</button>
+
+{% if audio %}
+<audio id="audio">
+    <source src="{{ audio }}" type="audio/mp3">
+</audio>
+{% endif %}
+
+<script>
+// 🎤 RECONHECIMENTO DE VOZ
+function falar() {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "pt-BR";
+
+    recognition.onresult = function(event) {
+        document.getElementById("mensagem").value =
+            event.results[0][0].transcript;
+    };
+
+    recognition.start();
+}
+
+// 🔊 TOCAR ÁUDIO SEM DUPLICAR
+window.onload = function() {
+    const audio = document.getElementById("audio");
+
+    if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.play();
+    }
+}
+</script>
+
+</body>
+</html>    display: flex;
     padding: 10px;
     background: #1a1a1a;
     gap: 8px;
