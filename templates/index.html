@@ -3,23 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <title>Assistente IA</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    margin: 0;
+}
+
+.chat {
+    padding: 15px;
+}
+
+.user {
+    background: #2b6cff;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 85%;
+    margin-left: auto;
+}
+
+.bot {
+    background: #1a1a1a;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    max-width: 85%;
+}
+
+.input-area {
+    display: flex;
+    padding: 10px;
+    background: #1a1a1a;
+    gap: 8px;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    outline: none;
+}
+
+button {
+    padding: 12px 14px;
+    border: none;
+    border-radius: 8px;
+    background: #2b6cff;
+    color: white;
+    font-weight: bold;
+}
+</style>
+
 </head>
 
 <body>
 
-<h2>Assistente IA</h2>
+<div class="chat">
+    <h2>🤖 IA Assistente</h2>
 
-<form method="POST">
+    {% if resposta %}
+        <div class="bot">{{ resposta }}</div>
+    {% endif %}
+</div>
+
+<form method="POST" class="input-area">
     <input type="text" name="mensagem" id="mensagem" placeholder="Digite ou fale..." required>
     <button type="submit">Enviar</button>
 </form>
 
 <button onclick="falar()">🎤 Falar</button>
 
-<p>{{ resposta }}</p>
-
 {% if audio %}
-<audio autoplay>
+<audio id="audio" autoplay>
     <source src="{{ audio }}" type="audio/mp3">
 </audio>
 {% endif %}
@@ -35,6 +94,11 @@ function falar() {
     };
 
     recognition.start();
+}
+</script>
+
+</body>
+</html>    recognition.start();
 }
 </script>
 
