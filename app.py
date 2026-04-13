@@ -7,10 +7,10 @@ import os
 
 app = Flask(__name__)
 
-# 🔑 SUA CHAVE GROQ (Render já configurado)
+# 🔑 Chave da API (Render)
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# 🎤 FUNÇÃO PARA GERAR ÁUDIO
+# 🎤 Função para gerar áudio
 async def gerar_audio_async(texto, arquivo):
     communicate = edge_tts.Communicate(texto, voice="pt-BR-AntonioNeural")
     await communicate.save(arquivo)
@@ -20,7 +20,7 @@ def gerar_audio(texto):
     asyncio.run(gerar_audio_async(texto, nome))
     return nome
 
-# 🧠 ROTA PRINCIPAL
+# 🧠 Rota principal
 @app.route("/", methods=["GET", "POST"])
 def home():
     resposta = ""
@@ -31,7 +31,7 @@ def home():
 
         try:
             chat = client.chat.completions.create(
-                model="llama3-70b-8192",
+                model="llama-3.1-8b-instant",  # ✅ MODELO ATUALIZADO
                 messages=[
                     {"role": "user", "content": mensagem}
                 ]
@@ -39,7 +39,7 @@ def home():
 
             resposta = chat.choices[0].message.content
 
-            # 🔊 GERAR ÁUDIO
+            # 🔊 gerar áudio
             audio = gerar_audio(resposta)
 
         except Exception as e:
@@ -47,6 +47,6 @@ def home():
 
     return render_template("index.html", resposta=resposta, audio=audio)
 
-# 🚀 RODAR APP
+# 🚀 Rodar app
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
