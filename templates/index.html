@@ -10,23 +10,17 @@ body {
     font-family: Arial;
     background: #0f172a;
     color: white;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
 }
 
 .header {
     padding: 15px;
     background: #1a1a1a;
     text-align: center;
-    font-size: 18px;
     font-weight: bold;
 }
 
 .chat {
-    flex: 1;
     padding: 10px;
-    overflow-y: auto;
 }
 
 .bot {
@@ -35,15 +29,6 @@ body {
     border-radius: 12px;
     margin-bottom: 10px;
     max-width: 85%;
-}
-
-.user {
-    background: #2b6cff;
-    padding: 12px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    max-width: 85%;
-    margin-left: auto;
 }
 
 .input-area {
@@ -56,22 +41,16 @@ body {
 input {
     flex: 1;
     padding: 12px;
-    border: none;
     border-radius: 8px;
-    outline: none;
+    border: none;
 }
 
 button {
     padding: 12px;
-    border: none;
     border-radius: 8px;
+    border: none;
     background: #2b6cff;
     color: white;
-    font-weight: bold;
-}
-
-.voice-btn {
-    margin: 10px;
 }
 </style>
 
@@ -92,7 +71,7 @@ button {
     <button type="submit">Enviar</button>
 </form>
 
-<button class="voice-btn" onclick="falar()">🎤 Falar</button>
+<button onclick="falar()">🎤 Falar</button>
 
 {% if audio %}
 <audio id="audio">
@@ -101,7 +80,6 @@ button {
 {% endif %}
 
 <script>
-// 🎤 RECONHECIMENTO DE VOZ
 function falar() {
     const recognition = new webkitSpeechRecognition();
     recognition.lang = "pt-BR";
@@ -114,251 +92,16 @@ function falar() {
     recognition.start();
 }
 
-// 🔊 TOCAR ÁUDIO SEM DUPLICAR
+// 🔊 GARANTIR 1 ÁUDIO APENAS
 window.onload = function() {
     const audio = document.getElementById("audio");
-
     if (audio) {
         audio.pause();
         audio.currentTime = 0;
         audio.play();
     }
-}
+};
 </script>
 
 </body>
-</html>    display: flex;
-    padding: 10px;
-    background: #1a1a1a;
-    gap: 8px;
-}
-
-input {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    outline: none;
-}
-
-button {
-    padding: 12px 14px;
-    border: none;
-    border-radius: 8px;
-    background: #2b6cff;
-    color: white;
-    font-weight: bold;
-}
-</style>
-
-</head>
-
-<body>
-
-<div class="chat">
-    <h2>🤖 IA Assistente</h2>
-
-    {% if resposta %}
-        <div class="bot">{{ resposta }}</div>
-    {% endif %}
-</div>
-
-<form method="POST" class="input-area">
-    <input type="text" name="mensagem" id="mensagem" placeholder="Digite ou fale..." required>
-    <button type="submit">Enviar</button>
-</form>
-
-<button onclick="falar()">🎤 Falar</button>
-
-{% if audio %}
-<audio id="audio" autoplay>
-    <source src="{{ audio }}" type="audio/mp3">
-</audio>
-{% endif %}
-
-<script>
-function falar() {
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = "pt-BR";
-
-    recognition.onresult = function(event) {
-        document.getElementById("mensagem").value =
-            event.results[0][0].transcript;
-    };
-
-    recognition.start();
-}
-</script>
-
-</body>
-</html>    recognition.start();
-}
-</script>
-
-</body>
-</html>        padding: 12px;
-        border-radius: 12px;
-        margin-bottom: 10px;
-        max-width: 85%;
-    }
-
-    .input-area {
-        display: flex;
-        padding: 10px;
-        background: #1a1a1a;
-        gap: 8px;
-    }
-
-    input {
-        flex: 1;
-        padding: 12px;
-        border: none;
-        border-radius: 8px;
-        outline: none;
-    }
-
-    button {
-        padding: 12px 14px;
-        border: none;
-        border-radius: 8px;
-        background: #2b6cff;
-        color: white;
-        font-weight: bold;
-    }
-
-    button:active {
-        transform: scale(0.97);
-    }
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-    <div class="header">
-        🤖 IA Assistente
-    </div>
-
-    <div class="chat">
-
-        {% if resposta %}
-        <div class="bot">
-            {{ resposta }}
-        </div>
-        {% endif %}
-
-    </div>
-
-    <form method="POST" class="input-area">
-        <input type="text" name="mensagem" placeholder="Digite sua pergunta..." required>
-
-        <!-- 🎤 MICROFONE -->
-        <button type="button" onclick="startVoice()">🎤</button>
-
-        <button type="submit">Enviar</button>
-    </form>
-
-</div>
-
-<!-- 🔊 ÁUDIO AUTOMÁTICO -->
-{% if audio %}
-<audio autoplay>
-    <source src="{{ audio }}" type="audio/mpeg">
-</audio>
-{% endif %}
-
-<!-- 🎤 VOZ PARA TEXTO -->
-<script>
-function startVoice() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-        alert("Microfone não suportado neste navegador");
-        return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'pt-BR';
-    recognition.start();
-
-    recognition.onresult = function(event) {
-        document.querySelector('input[name="mensagem"]').value =
-            event.results[0][0].transcript;
-    };
-}
-</script>
-
-</body>
-</html>            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            max-width: 85%;
-        }
-
-        .user {
-            background: #2b6cff;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            max-width: 85%;
-            margin-left: auto;
-        }
-
-        .input-area {
-            display: flex;
-            padding: 10px;
-            background: #1a1a1a;
-        }
-
-        input {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            outline: none;
-        }
-
-        button {
-            margin-left: 10px;
-            padding: 12px 16px;
-            border: none;
-            border-radius: 8px;
-            background: #2b6cff;
-            color: white;
-            font-weight: bold;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="container">
-
-    <div class="header">
-        🤖 IA Assistente
-    </div>
-
-    <div class="chat">
-
-        {% if resposta %}
-        <div class="bot">
-            {{ resposta }}
-        </div>
-        {% endif %}
-
-    </div>
-
-    <form method="POST" class="input-area">
-        <input type="text" name="mensagem" placeholder="Digite sua pergunta..." required>
-        <button type="submit">Enviar</button>
-    </form>
-
-</div>
-
-</body>
-          </html>
+</html>
