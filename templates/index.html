@@ -12,42 +12,42 @@ body {
     color: white;
 
     display: flex;
-    justify-content: center;   /* horizontal */
-    align-items: center;       /* vertical */
+    justify-content: center;
+    align-items: center;
     height: 100vh;
 }
 
-/* caixa principal */
+/* container central */
 .container {
+    text-align: center;
+    background: #111827;
+    padding: 20px;
+    border-radius: 15px;
     width: 90%;
     max-width: 400px;
-    background: #111827;
-    border-radius: 15px;
-    padding: 15px;
 }
 
-/* título */
-.header {
-    text-align: center;
-    margin-bottom: 15px;
+/* avatar animado */
+.avatar {
+    width: 120px;
+    height: 120px;
+    background: #2563eb;
+    border-radius: 50%;
+    margin: auto;
+    box-shadow: 0 0 20px #2563eb;
+    animation: pulse 1.5s infinite;
 }
 
-/* chat */
-.chat {
-    min-height: 100px;
-    margin-bottom: 10px;
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 
-.bot {
-    background: #1f2937;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-/* área de input */
+/* input */
 .input-area {
     display: flex;
+    margin-top: 20px;
     gap: 5px;
 }
 
@@ -67,9 +67,9 @@ button {
     font-weight: bold;
 }
 
-/* botão de voz separado */
+/* botão voz */
 .voice-btn {
-    margin-top: 10px;
+    margin-top: 15px;
     width: 100%;
 }
 </style>
@@ -80,23 +80,19 @@ button {
 
 <div class="container">
 
-    <div class="header">
-        🤖 IA Assistente
-    </div>
+    <!-- Avatar -->
+    <div class="avatar"></div>
 
-    <div class="chat">
-        {% if resposta %}
-            <div class="bot">{{ resposta }}</div>
-        {% endif %}
-    </div>
-
+    <!-- Input (digitado) -->
     <form method="POST" class="input-area">
         <input type="text" name="mensagem" id="mensagem" placeholder="Digite ou fale..." required>
         <button type="submit">Enviar</button>
     </form>
 
+    <!-- Botão de voz -->
     <button class="voice-btn" onclick="falar()">🎤 Falar</button>
 
+    <!-- Áudio -->
     {% if audio %}
     <audio id="audio">
         <source src="{{ audio }}" type="audio/mp3">
@@ -106,41 +102,28 @@ button {
 </div>
 
 <script>
-let reconhecendo = false;
-
+// 🎤 VOZ → ENVIO AUTOMÁTICO
 function falar() {
     const recognition = new webkitSpeechRecognition();
     recognition.lang = "pt-BR";
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    reconhecendo = true;
-
     recognition.onresult = function(event) {
         const texto = event.results[0][0].transcript;
 
-        // coloca no input (opcional)
+        // coloca no input
         const input = document.getElementById("mensagem");
-        if (input) input.value = texto;
+        input.value = texto;
 
-        // 🔥 ENVIA AUTOMATICAMENTE
-        fetch("/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: "mensagem=" + encodeURIComponent(texto)
-        }).then(() => location.reload());
-    };
-
-    recognition.onend = function() {
-        reconhecendo = false;
+        // 🔥 envia automaticamente
+        input.form.submit();
     };
 
     recognition.start();
 }
 
-// 🔊 tocar áudio uma vez
+// 🔊 ÁUDIO SEM DUPLICAR
 window.onload = function() {
     const audio = document.getElementById("audio");
     if (audio) {
