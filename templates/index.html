@@ -5,6 +5,10 @@
 <title>Assistente IA</title>
 
 <style>
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     background: #0f172a;
@@ -24,7 +28,7 @@ body {
 .avatar {
     width: 120px;
     height: 120px;
-    background: #2563eb; /* 🔵 */
+    background: #2563eb; /* 🔵 neutro */
     border-radius: 50%;
     margin: auto;
     transition: 0.3s;
@@ -47,25 +51,29 @@ body {
 
 input {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     margin-top: 15px;
     border-radius: 8px;
     border: none;
+    outline: none;
+    font-size: 14px;
 }
 
 button {
+    width: 100%;
     margin-top: 10px;
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
     border: none;
     background: #2563eb;
     color: white;
-    width: 100%;
+    font-size: 14px;
 }
 
 #status {
     margin-top: 10px;
     font-size: 14px;
+    opacity: 0.8;
 }
 </style>
 
@@ -79,14 +87,14 @@ button {
 
     <p id="status">Pronto</p>
 
-    <!-- MODO 1 -->
+    <!-- MODO TEXTO -->
     <input id="texto" placeholder="Digite sua pergunta">
     <button onclick="modoTexto()">Enviar</button>
 
-    <!-- MODO 2 -->
+    <!-- MODO VOZ -->
     <button onclick="modoMicrofone()">🎤 Falar uma vez</button>
 
-    <!-- MODO 3 -->
+    <!-- MODO CONTÍNUO -->
     <button onclick="toggleContinuo()">🔁 Conversa contínua OFF</button>
 
 </div>
@@ -109,7 +117,7 @@ recognition.continuous = false;
 recognition.interimResults = false;
 
 // =======================
-// MODO TEXTO
+// TEXTO
 // =======================
 function modoTexto() {
     if (isSpeaking) return;
@@ -121,7 +129,7 @@ function modoTexto() {
 }
 
 // =======================
-// MODO VOZ ÚNICA
+// VOZ
 // =======================
 function modoMicrofone() {
     if (isListening || isSpeaking) return;
@@ -130,7 +138,7 @@ function modoMicrofone() {
 }
 
 // =======================
-// MODO CONTÍNUO
+// CONTÍNUO ON/OFF
 // =======================
 function toggleContinuo() {
     isContinuous = !isContinuous;
@@ -153,7 +161,7 @@ function toggleContinuo() {
 }
 
 // =======================
-// EVENTOS VOZ
+// RECONHECIMENTO
 // =======================
 recognition.onstart = () => {
     isListening = true;
@@ -175,7 +183,7 @@ recognition.onend = () => {
 };
 
 // =======================
-// ENVIO
+// ENVIO IA
 // =======================
 function enviarPergunta(texto) {
     isSpeaking = true;
