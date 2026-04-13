@@ -24,13 +24,26 @@ body {
 .avatar {
     width: 120px;
     height: 120px;
-    background: #2563eb;
+    background: #2563eb; /* 🔵 */
     border-radius: 50%;
     margin: auto;
+    transition: 0.3s;
 }
 
-.ouvindo { background: #22c55e; }
-.processando { background: #f59e0b; }
+.ouvindo { 
+    background: #22c55e; /* 🟢 */
+    box-shadow: 0 0 30px #22c55e;
+}
+
+.pensando { 
+    background: #eab308; /* 🟡 */
+    box-shadow: 0 0 30px #eab308;
+}
+
+.respondendo { 
+    background: #ef4444; /* 🔴 */
+    box-shadow: 0 0 30px #ef4444;
+}
 
 input {
     width: 100%;
@@ -94,7 +107,7 @@ recognition.continuous = false;
 recognition.interimResults = false;
 
 // =======================
-// 🔹 MODO 1 (TEXTO)
+// MODO 1
 // =======================
 function modoTexto() {
     if (isSpeaking) return;
@@ -106,7 +119,7 @@ function modoTexto() {
 }
 
 // =======================
-// 🔹 MODO 2 (MICROFONE)
+// MODO 2
 // =======================
 function modoMicrofone() {
     if (isListening || isSpeaking) return;
@@ -115,7 +128,7 @@ function modoMicrofone() {
 }
 
 // =======================
-// 🔹 MODO 3 (CONTÍNUO)
+// MODO 3
 // =======================
 function toggleContinuo() {
     isContinuous = !isContinuous;
@@ -128,7 +141,7 @@ function toggleContinuo() {
 }
 
 // =======================
-// 🎤 EVENTOS VOZ
+// EVENTOS VOZ
 // =======================
 recognition.onstart = () => {
     isListening = true;
@@ -150,11 +163,11 @@ recognition.onend = () => {
 };
 
 // =======================
-// 🚀 ENVIO
+// ENVIO
 // =======================
 function enviarPergunta(texto) {
     isSpeaking = true;
-    atualizarEstado("processando", "Pensando...");
+    atualizarEstado("pensando", "Pensando...");
 
     fetch("/perguntar", {
         method: "POST",
@@ -163,6 +176,8 @@ function enviarPergunta(texto) {
     })
     .then(res => res.json())
     .then(data => {
+
+        atualizarEstado("respondendo", "Respondendo...");
 
         const audio = new Audio(data.audio);
 
@@ -176,11 +191,15 @@ function enviarPergunta(texto) {
             if (isContinuous) iniciarLoop();
             else atualizarEstado("", "Pronto");
         };
+    })
+    .catch(() => {
+        isSpeaking = false;
+        atualizarEstado("", "Erro");
     });
 }
 
 // =======================
-// 🔁 LOOP CONTÍNUO
+// LOOP CONTÍNUO
 // =======================
 function iniciarLoop() {
     if (!isContinuous || isListening || isSpeaking) return;
@@ -193,7 +212,7 @@ function iniciarLoop() {
 }
 
 // =======================
-// 🎨 UI
+// UI
 // =======================
 function atualizarEstado(classe, texto) {
     avatar.className = "avatar " + classe;
