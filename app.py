@@ -1,88 +1,52 @@
 from flask import Flask, render_template, request
 from groq import Groq
-import subprocess
+import edge_tts
+import asyncio
+import uuid
 import os
 
-# ------------------------
-# APP FLASK
-# ------------------------
 app = Flask(__name__)
 
-# 🔐 API KEY vinda do Render (variável de ambiente)
+# 🔑 SUA CHAVE GROQ (Render já configurado)
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+# 🎤 FUNÇÃO PARA GERAR ÁUDIO
+async def gerar_audio_async(texto, arquivo):
+    communicate = edge_tts.Communicate(texto, voice="pt-BR-AntonioNeural")
+    await communicate.save(arquivo)
 
-# ------------------------
-# ÁUDIO (Edge TTS)
-# ------------------------
 def gerar_audio(texto):
-    try:
-        if not os.path.exists("static"):
-            os.makedirs("static")
+    nome = f"static/audio_{uuid.uuid4().hex}.mp3"
+    asyncio.run(gerar_audio_async(texto, nome))
+    return nome
 
-        nome_arquivo = "static/resposta.mp3"
-
-        subprocess.run([
-            "edge-tts",
-            "--text", texto,
-            "--voice", "pt-BR-AntonioNeural",
-            "--write-media", nome_arquivo
-        ], check=True)
-
-        return nome_arquivo
-
-    except Exception as e:
-        print("❌ erro áudio:", e)
-        return None
-
-
-# ------------------------
-# ROTA PRINCIPAL
-# ------------------------
+# 🧠 ROTA PRINCIPAL
 @app.route("/", methods=["GET", "POST"])
 def home():
     resposta = ""
-    audio = None
+    audio = ""
 
     if request.method == "POST":
-        mensagem = request.form.get("mensagem", "").strip()
-
-        if not mensagem:
-            return render_template("index.html", resposta="", audio=None)
-
-        print("📩 mensagem:", mensagem)
+        mensagem = request.form.get("mensagem")
 
         try:
             chat = client.chat.completions.create(
+                model="llama3-70b-8192",
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "Responda de forma direta, natural e sem usar histórico."
-                    },
-                    {
-                        "role": "user",
-                        "content": mensagem
-                    }
-                ],
-                model="llama-3.1-8b-instant",
-                max_tokens=180,
-                temperature=0.7
+                    {"role": "user", "content": mensagem}
+                ]
             )
 
             resposta = chat.choices[0].message.content
-            print("🤖 resposta:", resposta)
 
-            # 🔊 gera áudio
+            # 🔊 GERAR ÁUDIO
             audio = gerar_audio(resposta)
 
         except Exception as e:
-            resposta = f"Erro IA: {str(e)}"
+            resposta = f"Erro: {str(e)}"
 
     return render_template("index.html", resposta=resposta, audio=audio)
 
-
-# ------------------------
-# EXECUÇÃO LOCAL
-# ------------------------
+# 🚀 RODAR APP
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=5000)
