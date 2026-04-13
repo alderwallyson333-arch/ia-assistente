@@ -98,6 +98,8 @@ let isContinuous = false;
 let isListening = false;
 let isSpeaking = false;
 
+let currentAudio = null;
+
 const avatar = document.getElementById("avatar");
 const statusText = document.getElementById("status");
 const btnContinuo = document.querySelectorAll("button")[2];
@@ -107,7 +109,7 @@ recognition.continuous = false;
 recognition.interimResults = false;
 
 // =======================
-// MODO 1
+// MODO TEXTO
 // =======================
 function modoTexto() {
     if (isSpeaking) return;
@@ -119,7 +121,7 @@ function modoTexto() {
 }
 
 // =======================
-// MODO 2
+// MODO VOZ ÚNICA
 // =======================
 function modoMicrofone() {
     if (isListening || isSpeaking) return;
@@ -128,7 +130,7 @@ function modoMicrofone() {
 }
 
 // =======================
-// MODO 3
+// MODO CONTÍNUO
 // =======================
 function toggleContinuo() {
     isContinuous = !isContinuous;
@@ -137,7 +139,17 @@ function toggleContinuo() {
         ? "🔁 Conversa contínua ON"
         : "🔁 Conversa contínua OFF";
 
-    if (isContinuous) iniciarLoop();
+    if (isContinuous) {
+        iniciarLoop();
+    } else {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+        }
+
+        isSpeaking = false;
+        atualizarEstado("", "Parado");
+    }
 }
 
 // =======================
@@ -179,13 +191,15 @@ function enviarPergunta(texto) {
 
         atualizarEstado("respondendo", "Respondendo...");
 
-        const audio = new Audio(data.audio);
+        currentAudio = new Audio(data.audio);
 
         setTimeout(() => {
-            audio.play();
+            currentAudio.play().catch(() => {
+                isSpeaking = false;
+            });
         }, 300);
 
-        audio.onended = () => {
+        currentAudio.onended = () => {
             isSpeaking = false;
 
             if (isContinuous) iniciarLoop();
