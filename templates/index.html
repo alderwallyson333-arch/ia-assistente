@@ -1,40 +1,45 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IA Assistente</title>
+<title>Assistente IA</title>
+</head>
 
-<style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: #0f0f0f;
-        color: white;
-    }
+<body>
 
-    .container {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-    }
+<h2>Assistente IA</h2>
 
-    .header {
-        padding: 15px;
-        background: #1a1a1a;
-        text-align: center;
-        font-weight: bold;
-    }
+<form method="POST">
+    <input type="text" name="mensagem" id="mensagem" placeholder="Digite ou fale..." required>
+    <button type="submit">Enviar</button>
+</form>
 
-    .chat {
-        flex: 1;
-        padding: 12px;
-        overflow-y: auto;
-    }
+<button onclick="falar()">🎤 Falar</button>
 
-    .bot {
-        background: #2a2a2a;
-        padding: 12px;
+<p>{{ resposta }}</p>
+
+{% if audio %}
+<audio autoplay>
+    <source src="{{ audio }}" type="audio/mp3">
+</audio>
+{% endif %}
+
+<script>
+function falar() {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "pt-BR";
+
+    recognition.onresult = function(event) {
+        document.getElementById("mensagem").value =
+            event.results[0][0].transcript;
+    };
+
+    recognition.start();
+}
+</script>
+
+</body>
+</html>        padding: 12px;
         border-radius: 12px;
         margin-bottom: 10px;
         max-width: 85%;
