@@ -7,21 +7,17 @@ import os
 
 app = Flask(__name__)
 
-# 🔑 API KEY
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# 📁 PASTA DE ÁUDIO
 AUDIO_DIR = "static/audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
-# 🧹 LIMPAR ÁUDIOS
 def limpar_audios():
     for f in os.listdir(AUDIO_DIR):
         caminho = os.path.join(AUDIO_DIR, f)
         if os.path.isfile(caminho):
             os.remove(caminho)
 
-# 🔊 GERAR ÁUDIO
 async def gerar_audio_async(texto, arquivo):
     communicate = edge_tts.Communicate(texto, voice="pt-BR-AntonioNeural")
     await communicate.save(arquivo)
@@ -35,12 +31,10 @@ def gerar_audio(texto):
 
     return f"/static/audio/{nome}"
 
-# 🌐 PÁGINA
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# 🤖 PERGUNTA
 @app.route("/perguntar", methods=["POST"])
 def perguntar():
     mensagem = request.form.get("mensagem")
@@ -51,7 +45,7 @@ def perguntar():
             messages=[
                 {
                     "role": "system",
-                    "content": "Você é um assistente virtual por voz, direto, rápido e natural. Responda como uma pessoa falando, com no máximo 2 frases curtas."
+                    "content": "Você é um assistente virtual por voz, natural, direto e rápido. Responda em no máximo 2 frases curtas."
                 },
                 {
                     "role": "user",
@@ -71,6 +65,5 @@ def perguntar():
     except Exception as e:
         return jsonify({"erro": str(e)})
 
-# 🚀 RUN
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
