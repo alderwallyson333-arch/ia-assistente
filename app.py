@@ -45,7 +45,7 @@ def perguntar():
             messages=[
                 {
                     "role": "system",
-                    "content": "Você é um assistente virtual por voz, natural, direto e rápido. Responda em no máximo 2 frases curtas."
+                    "content": "Você é um assistente por voz, natural, direto e objetivo. Responda em até 2 frases curtas."
                 },
                 {
                     "role": "user",
