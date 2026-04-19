@@ -14,16 +14,26 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 AUDIO_DIR = "static/audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
-# 🧹 LIMPAR ÁUDIOS ANTIGOS
+# 🧹 LIMPAR ÁUDIOS
 def limpar_audios():
     for f in os.listdir(AUDIO_DIR):
         caminho = os.path.join(AUDIO_DIR, f)
         if os.path.isfile(caminho):
             os.remove(caminho)
 
-# 🔊 GERAR ÁUDIO (CORRIGIDO)
+# 🔊 TTS MELHORADO (MAIS NATURAL)
 async def gerar_audio_async(texto, arquivo):
-    communicate = edge_tts.Communicate(texto, voice="pt-BR-AntonioNeural")
+    texto_ssml = f"""
+<speak>
+    <prosody rate="-5%" pitch="+2%">
+        {texto}
+    </prosody>
+</speak>
+"""
+    communicate = edge_tts.Communicate(
+        texto_ssml,
+        voice="pt-BR-FranciscaNeural"
+    )
     await communicate.save(arquivo)
 
 def gerar_audio(texto):
@@ -39,7 +49,7 @@ def gerar_audio(texto):
     return f"/static/audio/{nome}"
 
 # =========================
-# ASSISTENTE (NORMAL)
+# ASSISTENTE
 # =========================
 @app.route("/")
 def home():
@@ -55,7 +65,7 @@ def perguntar():
             messages=[
                 {
                     "role": "system",
-                    "content": "Você é um assistente por voz, natural, direto e objetivo. Responda em até 2 frases curtas."
+                    "content": "Você é um assistente por voz, natural e direto. Responda em até 2 frases curtas."
                 },
                 {
                     "role": "user",
@@ -76,9 +86,8 @@ def perguntar():
         return jsonify({"erro": str(e)})
 
 # =========================
-# 🎙️ NARRADOR
+# NARRADOR
 # =========================
-
 @app.route("/narrador")
 def narrador_page():
     return render_template("narrador.html")
@@ -86,36 +95,36 @@ def narrador_page():
 @app.route("/narrar", methods=["POST"])
 def narrar():
     mensagem = request.form.get("mensagem")
+    modo = request.form.get("modo")
 
     try:
-        chat = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """
+        # 🔹 MODO LITERAL
+        if modo == "literal":
+            resposta = mensagem
+
+        # 🔹 MODO IA
+        else:
+            chat = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """
 Você é um narrador esportivo profissional brasileiro.
 
-REGRAS:
-- Narre com emoção intensa
-- Use frases curtas
-- Não explique nada
-- Não converse
-- Não responda perguntas
-- Apenas narre como se estivesse AO VIVO
-
-Exemplo:
-GOOOOOOL! É DO FLAMENGO! QUE MOMENTO!
+Narre com emoção, frases curtas e intensidade.
+Pareça uma transmissão AO VIVO.
 """
-                },
-                {
-                    "role": "user",
-                    "content": mensagem
-                }
-            ]
-        )
+                    },
+                    {
+                        "role": "user",
+                        "content": mensagem
+                    }
+                ]
+            )
 
-        resposta = chat.choices[0].message.content
+            resposta = chat.choices[0].message.content
+
         audio = gerar_audio(resposta)
 
         return jsonify({
@@ -127,6 +136,5 @@ GOOOOOOL! É DO FLAMENGO! QUE MOMENTO!
         return jsonify({"erro": str(e)})
 
 # =========================
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
