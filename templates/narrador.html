@@ -29,20 +29,15 @@ body {
     margin: auto;
 }
 
-input {
-    width: 100%;
-    padding: 12px;
-    margin-top: 20px;
-    border-radius: 8px;
-    border: none;
-}
-
-button {
+input, select, button {
     width: 100%;
     padding: 12px;
     margin-top: 10px;
     border-radius: 8px;
     border: none;
+}
+
+button {
     background: red;
     color: white;
     cursor: pointer;
@@ -59,6 +54,11 @@ button {
 
     <input id="evento" placeholder="Ex: Gol do Brasil aos 90 minutos">
 
+    <select id="modo">
+        <option value="ia">Narrador IA</option>
+        <option value="literal">Falar exatamente</option>
+    </select>
+
     <button onclick="narrar()">🎙️ Narrar</button>
 
 </div>
@@ -66,6 +66,8 @@ button {
 <script>
 function narrar() {
     const texto = document.getElementById("evento").value;
+    const modo = document.getElementById("modo").value;
+
     if (!texto) return;
 
     fetch("/narrar", {
@@ -73,7 +75,7 @@ function narrar() {
         headers: {
             "Content-Type": "application/x-www-form-urlencoded"
         },
-        body: "mensagem=" + encodeURIComponent(texto)
+        body: "mensagem=" + encodeURIComponent(texto) + "&modo=" + modo
     })
     .then(res => res.json())
     .then(data => {
