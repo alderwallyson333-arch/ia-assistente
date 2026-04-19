@@ -31,6 +31,9 @@ def gerar_audio(texto):
 
     return f"/static/audio/{nome}"
 
+# =========================
+# ASSISTENTE (JÁ EXISTENTE)
+# =========================
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -64,6 +67,59 @@ def perguntar():
 
     except Exception as e:
         return jsonify({"erro": str(e)})
+
+# =========================
+# 🔥 NARRADOR (NOVO)
+# =========================
+
+@app.route("/narrador")
+def narrador_page():
+    return render_template("narrador.html")
+
+@app.route("/narrar", methods=["POST"])
+def narrar():
+    mensagem = request.form.get("mensagem")
+
+    try:
+        chat = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """
+Você é um narrador esportivo profissional brasileiro.
+
+REGRAS:
+- Narre com emoção intensa
+- Use frases curtas e impactantes
+- Não explique
+- Não converse
+- Não responda perguntas
+- Apenas narre como se estivesse AO VIVO
+
+Exemplo:
+"GOOOOOOL! É DO FLAMENGO! QUE MOMENTO INCRÍVEL!"
+"""
+                },
+                {
+                    "role": "user",
+                    "content": mensagem
+                }
+            ]
+        )
+
+        resposta = chat.choices[0].message.content
+        audio = gerar_audio(resposta)
+
+        return jsonify({
+            "resposta": resposta,
+            "audio": audio
+        })
+
+    except Exception as e:
+        return jsonify({"erro": str(e)})
+
+# =========================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
