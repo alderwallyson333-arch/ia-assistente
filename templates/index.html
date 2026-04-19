@@ -68,6 +68,15 @@ button {
     background: #2563eb;
     color: white;
     font-size: 14px;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.botao-narrador {
+    background: #ef4444; /* 🔴 destaque */
 }
 
 #status {
@@ -96,6 +105,12 @@ button {
 
     <!-- MODO CONTÍNUO -->
     <button onclick="toggleContinuo()">🔁 Conversa contínua OFF</button>
+
+    <!-- SEPARADOR -->
+    <div style="margin-top:20px; opacity:0.2;">────────────</div>
+
+    <!-- NARRADOR -->
+    <button class="botao-narrador" onclick="abrirNarrador()">🎙️ Modo Narrador</button>
 
 </div>
 
@@ -231,6 +246,13 @@ function iniciarLoop() {
             recognition.start();
         } catch(e){}
     }, 500);
+}
+
+// =======================
+// NAVEGAÇÃO NARRADOR
+// =======================
+function abrirNarrador() {
+    window.location.href = "/narrador";
 }
 
 // =======================
