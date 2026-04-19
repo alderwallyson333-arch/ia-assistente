@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Narrador Esportivo</title>
+
+<style>
+body {
+    margin: 0;
+    background: #000;
+    color: white;
+    font-family: Arial;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    text-align: center;
+    width: 300px;
+}
+
+.avatar {
+    width: 140px;
+    height: 140px;
+    background: red;
+    border-radius: 50%;
+    margin: auto;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    background: red;
+    color: white;
+    cursor: pointer;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="avatar"></div>
+
+    <input id="evento" placeholder="Ex: Gol do Brasil aos 90 minutos">
+
+    <button onclick="narrar()">🎙️ Narrar</button>
+
+</div>
+
+<script>
+function narrar() {
+    const texto = document.getElementById("evento").value;
+    if (!texto) return;
+
+    fetch("/narrar", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "mensagem=" + encodeURIComponent(texto)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.audio) {
+            const audio = new Audio(data.audio);
+            audio.play();
+        } else {
+            alert("Erro: " + data.erro);
+        }
+    });
+}
+</script>
+
+</body>
+</html>
