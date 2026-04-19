@@ -7,17 +7,21 @@ import os
 
 app = Flask(__name__)
 
+# 🔑 API KEY
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+# 📁 PASTA DE ÁUDIO
 AUDIO_DIR = "static/audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
+# 🧹 LIMPAR ÁUDIOS ANTIGOS
 def limpar_audios():
     for f in os.listdir(AUDIO_DIR):
         caminho = os.path.join(AUDIO_DIR, f)
         if os.path.isfile(caminho):
             os.remove(caminho)
 
+# 🔊 GERAR ÁUDIO (CORRIGIDO)
 async def gerar_audio_async(texto, arquivo):
     communicate = edge_tts.Communicate(texto, voice="pt-BR-AntonioNeural")
     await communicate.save(arquivo)
@@ -27,12 +31,15 @@ def gerar_audio(texto):
     nome = f"{uuid.uuid4().hex}.mp3"
     caminho = os.path.join(AUDIO_DIR, nome)
 
-    asyncio.run(gerar_audio_async(texto, caminho))
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(gerar_audio_async(texto, caminho))
+    loop.close()
 
     return f"/static/audio/{nome}"
 
 # =========================
-# ASSISTENTE (JÁ EXISTENTE)
+# ASSISTENTE (NORMAL)
 # =========================
 @app.route("/")
 def home():
@@ -69,7 +76,7 @@ def perguntar():
         return jsonify({"erro": str(e)})
 
 # =========================
-# 🔥 NARRADOR (NOVO)
+# 🎙️ NARRADOR
 # =========================
 
 @app.route("/narrador")
@@ -91,14 +98,14 @@ Você é um narrador esportivo profissional brasileiro.
 
 REGRAS:
 - Narre com emoção intensa
-- Use frases curtas e impactantes
-- Não explique
+- Use frases curtas
+- Não explique nada
 - Não converse
 - Não responda perguntas
 - Apenas narre como se estivesse AO VIVO
 
 Exemplo:
-"GOOOOOOL! É DO FLAMENGO! QUE MOMENTO INCRÍVEL!"
+GOOOOOOL! É DO FLAMENGO! QUE MOMENTO!
 """
                 },
                 {
@@ -122,4 +129,4 @@ Exemplo:
 # =========================
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
