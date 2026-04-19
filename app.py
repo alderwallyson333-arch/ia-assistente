@@ -21,19 +21,24 @@ def limpar_audios():
         if os.path.isfile(caminho):
             os.remove(caminho)
 
-# 🔊 TTS MELHORADO (MAIS NATURAL)
+# 🔊 TTS COM MELHOR RITMO (MASCULINO)
 async def gerar_audio_async(texto, arquivo):
+    # melhora pausas naturais
+    texto = texto.replace("...", " ... ")
+
     texto_ssml = f"""
 <speak>
-    <prosody rate="-5%" pitch="+2%">
+    <prosody rate="-8%" pitch="+2%">
         {texto}
     </prosody>
 </speak>
 """
+
     communicate = edge_tts.Communicate(
         texto_ssml,
-        voice="pt-BR-FranciscaNeural"
+        voice="pt-BR-AntonioNeural"  # 🔥 voz masculina
     )
+
     await communicate.save(arquivo)
 
 def gerar_audio(texto):
@@ -86,7 +91,7 @@ def perguntar():
         return jsonify({"erro": str(e)})
 
 # =========================
-# NARRADOR
+# 🎙️ NARRADOR MELHORADO
 # =========================
 @app.route("/narrador")
 def narrador_page():
@@ -102,7 +107,7 @@ def narrar():
         if modo == "literal":
             resposta = mensagem
 
-        # 🔹 MODO IA
+        # 🔹 MODO IA (PROFISSIONAL)
         else:
             chat = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
@@ -110,10 +115,25 @@ def narrar():
                     {
                         "role": "system",
                         "content": """
-Você é um narrador esportivo profissional brasileiro.
+Você é um narrador esportivo brasileiro profissional.
 
-Narre com emoção, frases curtas e intensidade.
-Pareça uma transmissão AO VIVO.
+REGRAS:
+- Narre como se fosse AO VIVO
+- Use frases curtas
+- Use pausas com "..." para dar ritmo
+- Aumente a emoção em momentos importantes
+- Evite explicações
+
+ESTILO:
+- Energia crescente
+- Ritmo rápido
+- Natural, como TV esportiva
+
+EXEMPLO:
+GOOOOOOL! ... É DO FLAMENGO!
+Que jogada incrível! ... no fim do jogo!
+
+Narre o evento abaixo:
 """
                     },
                     {
