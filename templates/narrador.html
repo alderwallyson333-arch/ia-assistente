@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Narrador Esportivo</title>
+<title>Narrador</title>
 
 <style>
 body {
@@ -40,6 +40,7 @@ input, select, button {
 button {
     background: red;
     color: white;
+    cursor: pointer;
 }
 </style>
 </head>
@@ -50,11 +51,12 @@ button {
 
     <div class="avatar"></div>
 
-    <input id="evento" placeholder="Ex: Gol do Flamengo aos 45 minutos">
+    <input id="evento" placeholder="Digite exatamente o que o narrador deve falar">
 
     <select id="modo">
-        <option value="ia">Narrador IA</option>
-        <option value="literal">Falar exatamente</option>
+        <option value="br">🇧🇷 Narrador Brasileiro</option>
+        <option value="en_gb">🇬🇧 Narrador Inglês</option>
+        <option value="en_us">🇺🇸 Narrador Americano</option>
     </select>
 
     <button onclick="narrar()">🎙️ Narrar</button>
@@ -73,15 +75,15 @@ function narrar() {
         headers: {
             "Content-Type": "application/x-www-form-urlencoded"
         },
-        body: "mensagem=" + encodeURIComponent(texto) + "&modo=" + modo
+        body:
+            "mensagem=" + encodeURIComponent(texto) +
+            "&modo=" + modo
     })
     .then(res => res.json())
     .then(data => {
         if (data.audio) {
             const audio = new Audio(data.audio);
             audio.play();
-        } else {
-            alert("Erro: " + data.erro);
         }
     });
 }
