@@ -6,10 +6,14 @@ import uuid
 import os
 import re
 
+# 🔊 ELEVENLABS
+from elevenlabs import generate, save, set_api_key
+
 app = Flask(__name__)
 
-# 🔑 API KEY
+# 🔑 API KEYS
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+set_api_key(os.getenv("ELEVEN_API_KEY"))
 
 # 📁 ÁUDIOS
 AUDIO_DIR = "static/audio"
@@ -27,16 +31,23 @@ def limpar_audios():
 # =========================
 NARRADORES = {
     "br": {
+        "type": "edge",
         "voice": "pt-BR-AntonioNeural",
         "rate": "+5%",
-        "pitch": "+6%"
+        "pitch": "+5%"
+    },
+    "br_11": {
+        "type": "eleven",
+        "voice": "Adam"
     },
     "en_gb": {
+        "type": "edge",
         "voice": "en-GB-RyanNeural",
         "rate": "-5%",
         "pitch": "+2%"
     },
     "en_us": {
+        "type": "edge",
         "voice": "en-US-GuyNeural",
         "rate": "+3%",
         "pitch": "+3%"
@@ -66,9 +77,9 @@ def aplicar_comandos(texto):
     return resultado
 
 # =========================
-# 🔊 TTS
+# 🔊 EDGE TTS
 # =========================
-async def gerar_audio_async(texto, arquivo, config):
+async def gerar_edge(texto, arquivo, config):
     texto = aplicar_comandos(texto)
 
     ssml = f"""
@@ -86,16 +97,46 @@ async def gerar_audio_async(texto, arquivo, config):
 
     await communicate.save(arquivo)
 
+# =========================
+# 🔥 ELEVENLABS
+# =========================
+def gerar_eleven(texto, caminho, voice):
+    audio = generate(
+        text=texto,
+        voice=voice,
+        model="eleven_multilingual_v2"
+    )
+    save(audio, caminho)
+
+# =========================
+# 🔁 GERADOR UNIFICADO
+# =========================
 def gerar_audio(texto, config):
     limpar_audios()
 
     nome = f"{uuid.uuid4().hex}.mp3"
     caminho = os.path.join(AUDIO_DIR, nome)
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(gerar_audio_async(texto, caminho, config))
-    loop.close()
+    try:
+        if config["type"] == "edge":
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(gerar_edge(texto, caminho, config))
+            loop.close()
+
+        elif config["type"] == "eleven":
+            gerar_eleven(texto, caminho, config["voice"])
+
+    except Exception as e:
+        print("Erro no ElevenLabs, usando fallback Edge:", e)
+
+        # 🔁 fallback automático
+        fallback = NARRADORES["br"]
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(gerar_edge(texto, caminho, fallback))
+        loop.close()
 
     return f"/static/audio/{nome}"
 
@@ -163,4 +204,4 @@ def narrar():
 
 # =========================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
