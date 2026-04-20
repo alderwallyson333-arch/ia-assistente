@@ -19,7 +19,9 @@ eleven = ElevenLabs(api_key=os.getenv("ELEVEN_API_KEY"))
 AUDIO_DIR = "static/audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
+# =========================
 # 🧹 LIMPA ÁUDIOS
+# =========================
 def limpar_audios():
     for f in os.listdir(AUDIO_DIR):
         caminho = os.path.join(AUDIO_DIR, f)
@@ -99,17 +101,18 @@ async def gerar_edge(texto, arquivo, config):
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVENLABS (CORRIGIDO)
+# 🔥 ELEVENLABS (CORRETO)
 # =========================
 def gerar_eleven(texto, caminho, voice_id):
-    audio = eleven.text_to_speech.convert(
+    audio_stream = eleven.text_to_speech.convert(
         text=texto,
         voice_id=voice_id,
         model_id="eleven_multilingual_v2"
     )
 
     with open(caminho, "wb") as f:
-        f.write(audio)
+        for chunk in audio_stream:
+            f.write(chunk)
 
 # =========================
 # 🔁 GERADOR UNIFICADO
@@ -120,25 +123,18 @@ def gerar_audio(texto, config):
     nome = f"{uuid.uuid4().hex}.mp3"
     caminho = os.path.join(AUDIO_DIR, nome)
 
-    try:
-        if config["type"] == "edge":
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(gerar_edge(texto, caminho, config))
-            loop.close()
-
-        elif config["type"] == "eleven":
-            gerar_eleven(texto, caminho, config["voice"])
-
-    except Exception as e:
-        print("Erro ElevenLabs, fallback Edge:", e)
-
-        fallback = NARRADORES["br"]
-
+    if config["type"] == "edge":
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(gerar_edge(texto, caminho, fallback))
+        loop.run_until_complete(gerar_edge(texto, caminho, config))
         loop.close()
+
+    elif config["type"] == "eleven":
+        try:
+            gerar_eleven(texto, caminho, config["voice"])
+        except Exception as e:
+            # 🔴 AGORA MOSTRA ERRO REAL
+            raise Exception(f"Erro ElevenLabs: {str(e)}")
 
     return f"/static/audio/{nome}"
 
