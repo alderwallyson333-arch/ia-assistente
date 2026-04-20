@@ -6,7 +6,7 @@ import uuid
 import os
 import re
 
-# 🔊 ELEVENLABS (API NOVA)
+# 🔊 ELEVENLABS (API ATUAL)
 from elevenlabs.client import ElevenLabs
 
 app = Flask(__name__)
@@ -38,7 +38,8 @@ NARRADORES = {
     },
     "br_11": {
         "type": "eleven",
-        "voice": "Adam"
+        # 🎙️ VOICE ID (Rachel - mais estável)
+        "voice": "21m00Tcm4TlvDq8ikWAM"
     },
     "en_gb": {
         "type": "edge",
@@ -98,18 +99,17 @@ async def gerar_edge(texto, arquivo, config):
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVENLABS (NOVO PADRÃO)
+# 🔥 ELEVENLABS (CORRIGIDO)
 # =========================
-def gerar_eleven(texto, caminho, voice):
-    audio_stream = eleven.generate(
+def gerar_eleven(texto, caminho, voice_id):
+    audio = eleven.text_to_speech.convert(
         text=texto,
-        voice=voice,
-        model="eleven_multilingual_v2"
+        voice_id=voice_id,
+        model_id="eleven_multilingual_v2"
     )
 
     with open(caminho, "wb") as f:
-        for chunk in audio_stream:
-            f.write(chunk)
+        f.write(audio)
 
 # =========================
 # 🔁 GERADOR UNIFICADO
