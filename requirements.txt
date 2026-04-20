@@ -1,4 +1,5 @@
-Flask==3.0.3
-groq==0.9.0
-edge-tts==6.1.12
-elevenlabs==1.7.0
+flask
+groq
+edge-tts
+gunicorn
+elevenlabs
