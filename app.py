@@ -6,7 +6,7 @@ import uuid
 import os
 import re
 
-# 🔊 ELEVENLABS (API ATUAL)
+# 🔊 ELEVENLABS
 from elevenlabs.client import ElevenLabs
 
 app = Flask(__name__)
@@ -40,7 +40,7 @@ NARRADORES = {
     },
     "br_11": {
         "type": "eleven",
-        # 🎙️ VOICE ID (Rachel - mais estável)
+        # 🎙️ VOZ ESTÁVEL
         "voice": "21m00Tcm4TlvDq8ikWAM"
     },
     "en_gb": {
@@ -101,18 +101,31 @@ async def gerar_edge(texto, arquivo, config):
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVENLABS (CORRETO)
+# 🔥 ELEVENLABS (FINAL)
 # =========================
 def gerar_eleven(texto, caminho, voice_id):
-    audio_stream = eleven.text_to_speech.convert(
-        text=texto,
-        voice_id=voice_id,
-        model_id="eleven_multilingual_v2"
-    )
+    try:
+        audio_stream = eleven.text_to_speech.convert(
+            text=texto,
+            voice_id=voice_id,
+            model_id="eleven_multilingual_v2"
+        )
 
-    with open(caminho, "wb") as f:
+        audio_bytes = b""
+
         for chunk in audio_stream:
-            f.write(chunk)
+            if chunk:
+                audio_bytes += chunk
+
+        # ⚠️ GARANTE QUE NÃO ESTÁ VAZIO
+        if len(audio_bytes) == 0:
+            raise Exception("Áudio vazio retornado pelo ElevenLabs")
+
+        with open(caminho, "wb") as f:
+            f.write(audio_bytes)
+
+    except Exception as e:
+        raise Exception(f"Erro ElevenLabs: {str(e)}")
 
 # =========================
 # 🔁 GERADOR UNIFICADO
@@ -130,11 +143,7 @@ def gerar_audio(texto, config):
         loop.close()
 
     elif config["type"] == "eleven":
-        try:
-            gerar_eleven(texto, caminho, config["voice"])
-        except Exception as e:
-            # 🔴 AGORA MOSTRA ERRO REAL
-            raise Exception(f"Erro ElevenLabs: {str(e)}")
+        gerar_eleven(texto, caminho, config["voice"])
 
     return f"/static/audio/{nome}"
 
