@@ -5,15 +5,13 @@ import asyncio
 import uuid
 import os
 import re
-
-# 🔊 ELEVENLABS
-from elevenlabs.client import ElevenLabs
+import requests
 
 app = Flask(__name__)
 
 # 🔑 API KEYS
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-eleven = ElevenLabs(api_key=os.getenv("ELEVEN_API_KEY"))
+ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
 
 # 📁 ÁUDIOS
 AUDIO_DIR = "static/audio"
@@ -39,9 +37,7 @@ NARRADORES = {
         "pitch": "+5%"
     },
     "br_11": {
-        "type": "eleven",
-        # 🎙️ VOZ ESTÁVEL
-        "voice": "21m00Tcm4TlvDq8ikWAM"
+        "type": "eleven"
     },
     "en_gb": {
         "type": "edge",
@@ -101,31 +97,35 @@ async def gerar_edge(texto, arquivo, config):
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVENLABS (FINAL)
+# 🔥 ELEVENLABS (HTTP DIRETO)
 # =========================
-def gerar_eleven(texto, caminho, voice_id):
-    try:
-        audio_stream = eleven.text_to_speech.convert(
-            text=texto,
-            voice_id=voice_id,
-            model_id="eleven_multilingual_v2"
-        )
+def gerar_eleven(texto, caminho):
+    if not ELEVEN_API_KEY:
+        raise Exception("ELEVEN_API_KEY não configurada")
 
-        audio_bytes = b""
+    url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
 
-        for chunk in audio_stream:
-            if chunk:
-                audio_bytes += chunk
+    headers = {
+        "xi-api-key": ELEVEN_API_KEY,
+        "Content-Type": "application/json"
+    }
 
-        # ⚠️ GARANTE QUE NÃO ESTÁ VAZIO
-        if len(audio_bytes) == 0:
-            raise Exception("Áudio vazio retornado pelo ElevenLabs")
+    data = {
+        "text": texto,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {
+            "stability": 0.4,
+            "similarity_boost": 0.8
+        }
+    }
 
-        with open(caminho, "wb") as f:
-            f.write(audio_bytes)
+    response = requests.post(url, json=data, headers=headers)
 
-    except Exception as e:
-        raise Exception(f"Erro ElevenLabs: {str(e)}")
+    if response.status_code != 200:
+        raise Exception(f"Erro ElevenLabs: {response.text}")
+
+    with open(caminho, "wb") as f:
+        f.write(response.content)
 
 # =========================
 # 🔁 GERADOR UNIFICADO
@@ -143,7 +143,7 @@ def gerar_audio(texto, config):
         loop.close()
 
     elif config["type"] == "eleven":
-        gerar_eleven(texto, caminho, config["voice"])
+        gerar_eleven(texto, caminho)
 
     return f"/static/audio/{nome}"
 
