@@ -6,14 +6,14 @@ import uuid
 import os
 import re
 
-# 🔊 ELEVENLABS
-from elevenlabs import generate, save, set_api_key
+# 🔊 ELEVENLABS (API NOVA)
+from elevenlabs.client import ElevenLabs
 
 app = Flask(__name__)
 
 # 🔑 API KEYS
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-set_api_key(os.getenv("ELEVEN_API_KEY"))
+eleven = ElevenLabs(api_key=os.getenv("ELEVEN_API_KEY"))
 
 # 📁 ÁUDIOS
 AUDIO_DIR = "static/audio"
@@ -98,15 +98,18 @@ async def gerar_edge(texto, arquivo, config):
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVENLABS
+# 🔥 ELEVENLABS (NOVO PADRÃO)
 # =========================
 def gerar_eleven(texto, caminho, voice):
-    audio = generate(
+    audio_stream = eleven.generate(
         text=texto,
         voice=voice,
         model="eleven_multilingual_v2"
     )
-    save(audio, caminho)
+
+    with open(caminho, "wb") as f:
+        for chunk in audio_stream:
+            f.write(chunk)
 
 # =========================
 # 🔁 GERADOR UNIFICADO
@@ -128,9 +131,8 @@ def gerar_audio(texto, config):
             gerar_eleven(texto, caminho, config["voice"])
 
     except Exception as e:
-        print("Erro no ElevenLabs, usando fallback Edge:", e)
+        print("Erro ElevenLabs, fallback Edge:", e)
 
-        # 🔁 fallback automático
         fallback = NARRADORES["br"]
 
         loop = asyncio.new_event_loop()
@@ -179,7 +181,7 @@ def narrador_page():
     return render_template("narrador.html")
 
 # =========================
-# 🎙️ NARRAR (COM SUBMÓDULOS)
+# 🎙️ NARRAR
 # =========================
 @app.route("/narrar", methods=["POST"])
 def narrar():
