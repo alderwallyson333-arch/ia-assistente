@@ -2,12 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Narrador</title>
+<title>Narrador IA</title>
 
 <style>
 body {
     margin: 0;
-    background: #000;
+    background: #0f172a;
     color: white;
     font-family: Arial;
     display: flex;
@@ -17,30 +17,42 @@ body {
 }
 
 .container {
+    width: 320px;
     text-align: center;
-    width: 300px;
 }
 
 .avatar {
-    width: 140px;
-    height: 140px;
-    background: red;
+    width: 120px;
+    height: 120px;
+    background: #2563eb;
     border-radius: 50%;
     margin: auto;
+    transition: 0.3s;
+}
+
+.respondendo {
+    background: #ef4444;
+    box-shadow: 0 0 30px #ef4444;
 }
 
 input, select, button {
     width: 100%;
-    padding: 12px;
     margin-top: 10px;
+    padding: 12px;
     border-radius: 8px;
     border: none;
+    font-size: 14px;
 }
 
 button {
-    background: red;
+    background: #2563eb;
     color: white;
-    cursor: pointer;
+}
+
+#status {
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0.8;
 }
 </style>
 </head>
@@ -49,42 +61,75 @@ button {
 
 <div class="container">
 
-    <div class="avatar"></div>
+    <div id="avatar" class="avatar"></div>
 
-    <input id="evento" placeholder="Digite exatamente o que o narrador deve falar">
+    <p id="status">Pronto</p>
 
+    <!-- TEXTO -->
+    <input id="texto" placeholder="Digite a narração...">
+
+    <!-- MODO -->
     <select id="modo">
-        <option value="br">🇧🇷 Narrador Brasileiro</option>
-        <option value="en_gb">🇬🇧 Narrador Inglês</option>
-        <option value="en_us">🇺🇸 Narrador Americano</option>
+        <option value="br">🇧🇷 BR (Edge)</option>
+        <option value="br_11">🔥 BR (ElevenLabs)</option>
+        <option value="en_gb">🇬🇧 UK</option>
+        <option value="en_us">🇺🇸 US</option>
     </select>
 
+    <!-- BOTÃO -->
     <button onclick="narrar()">🎙️ Narrar</button>
 
 </div>
 
 <script>
+let currentAudio = null;
+
+const avatar = document.getElementById("avatar");
+const statusText = document.getElementById("status");
+
+// =======================
+// NARRAR
+// =======================
 function narrar() {
-    const texto = document.getElementById("evento").value;
+    const texto = document.getElementById("texto").value;
     const modo = document.getElementById("modo").value;
 
     if (!texto) return;
+
+    avatar.className = "avatar respondendo";
+    statusText.innerText = "Gerando narração...";
+
+    // interrompe áudio anterior
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+    }
 
     fetch("/narrar", {
         method: "POST",
         headers: {
             "Content-Type": "application/x-www-form-urlencoded"
         },
-        body:
-            "mensagem=" + encodeURIComponent(texto) +
-            "&modo=" + modo
+        body: "mensagem=" + encodeURIComponent(texto) + "&modo=" + modo
     })
     .then(res => res.json())
     .then(data => {
-        if (data.audio) {
-            const audio = new Audio(data.audio);
-            audio.play();
-        }
+
+        currentAudio = new Audio(data.audio);
+
+        currentAudio.play().catch(() => {
+            statusText.innerText = "Erro ao tocar";
+        });
+
+        currentAudio.onended = () => {
+            avatar.className = "avatar";
+            statusText.innerText = "Pronto";
+        };
+
+    })
+    .catch(() => {
+        avatar.className = "avatar";
+        statusText.innerText = "Erro";
     });
 }
 </script>
