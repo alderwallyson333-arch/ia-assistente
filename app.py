@@ -9,13 +9,6 @@ import re
 app = Flask(__name__)
 
 # =========================
-# 🔥 DEBUG (PROVA DE DEPLOY)
-# =========================
-@app.route("/debug")
-def debug():
-    return "VERSAO NOVA ATIVA"
-
-# =========================
 # 🔑 API KEY
 # =========================
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -34,7 +27,7 @@ def limpar_audios():
             os.remove(caminho)
 
 # =========================
-# 🎙️ VOZ
+# 🎙️ CONFIG VOZ
 # =========================
 NARRADOR = {
     "voice": "pt-BR-AntonioNeural",
@@ -42,28 +35,10 @@ NARRADOR = {
     "pitch": "+5%"
 }
 
-def aplicar_comandos(texto):
-    comandos = {
-        "pause": '<break time="400ms"/>',
-        "long": '<break time="800ms"/>'
-    }
-
-    partes = re.split(r'(\(.*?\))', texto)
-    resultado = ""
-
-    for parte in partes:
-        if parte.startswith("(") and parte.endswith(")"):
-            cmd = parte[1:-1]
-            if cmd in comandos:
-                resultado += comandos[cmd]
-        else:
-            resultado += parte
-
-    return resultado
-
+# =========================
+# 🔊 EDGE TTS
+# =========================
 async def gerar_edge(texto, arquivo):
-    texto = aplicar_comandos(texto)
-
     ssml = f"""
 <speak>
     <prosody rate="{NARRADOR['rate']}" pitch="{NARRADOR['pitch']}">
@@ -89,72 +64,101 @@ def gerar_audio(texto):
     return f"/static/audio/{nome}"
 
 # =========================
-# 🧠 ASSISTENTE
+# 🧠 ASSISTENTE PRINCIPAL
 # =========================
 @app.route("/")
 def home():
-    return "HOME OK"
+    return render_template("index.html")
 
 @app.route("/perguntar", methods=["POST"])
 def perguntar():
     mensagem = request.form.get("mensagem")
 
-    chat = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {"role": "system", "content": "Assistente direto"},
-            {"role": "user", "content": mensagem}
-        ]
-    )
+    try:
+        chat = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "Você é um assistente direto e útil."},
+                {"role": "user", "content": mensagem}
+            ]
+        )
 
-    resposta = chat.choices[0].message.content
-    audio = gerar_audio(resposta)
+        resposta = chat.choices[0].message.content
+        audio = gerar_audio(resposta)
 
-    return jsonify({
-        "resposta": resposta,
-        "audio": audio
-    })
+        return jsonify({
+            "resposta": resposta,
+            "audio": audio
+        })
+
+    except Exception as e:
+        return jsonify({"erro": str(e)})
 
 # =========================
 # 🎙️ NARRADOR
 # =========================
 @app.route("/narrador")
 def narrador_page():
-    return "NARRADOR OK"
+    return render_template("narrador.html")
 
 @app.route("/narrar", methods=["POST"])
 def narrar():
     mensagem = request.form.get("mensagem")
 
-    audio = gerar_audio(mensagem)
+    try:
+        audio = gerar_audio(mensagem)
 
-    return jsonify({
-        "resposta": mensagem,
-        "audio": audio
-    })
+        return jsonify({
+            "resposta": mensagem,
+            "audio": audio
+        })
+
+    except Exception as e:
+        return jsonify({"erro": str(e)})
 
 # =========================
-# 🎓 EDUCAÇÃO (BASE)
+# 🎓 EDUCAÇÃO (INGLÊS SIMPLES)
 # =========================
-def executar_modulo_educacao(modulo, mensagem):
-    if modulo == "ingles":
-        return "MODULO INGLES OK"
-    return "MODULO NAO ENCONTRADO"
+def professor_ingles(mensagem):
+    chat = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+                "role": "system",
+                "content": "Você é um professor de inglês direto e prático. Corrija erros e explique de forma simples."
+            },
+            {
+                "role": "user",
+                "content": mensagem
+            }
+        ]
+    )
 
-@app.route("/educacao")
-def educacao_get():
-    return "EDUCACAO OK"
+    return chat.choices[0].message.content
 
+# =========================
+# 🎓 ROTA EDUCAÇÃO
+# =========================
 @app.route("/educacao", methods=["POST"])
-def educacao_post():
+def educacao():
     mensagem = request.form.get("mensagem")
     modulo = request.form.get("modulo", "ingles")
 
-    resposta = executar_modulo_educacao(modulo, mensagem)
+    try:
+        if modulo == "ingles":
+            resposta = professor_ingles(mensagem)
+        else:
+            resposta = "Módulo não encontrado"
 
-    return jsonify({
-        "resposta": resposta
-    })
+        audio = gerar_audio(resposta)
+
+        return jsonify({
+            "resposta": resposta,
+            "audio": audio
+        })
+
+    except Exception as e:
+        return jsonify({"erro": str(e)})
 
 # =========================
 if __name__ == "__main__":
