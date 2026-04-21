@@ -1,13 +1,30 @@
 from flask import Flask, jsonify
 import requests
 import os
+import uuid
 
 app = Flask(__name__)
 
+# =========================
+# CONFIG
+# =========================
+AUDIO_DIR = "static/audio"
+os.makedirs(AUDIO_DIR, exist_ok=True)
+
+# =========================
+# TESTE DE DEPLOY
+# =========================
 @app.route("/")
 def home():
-    return "Servidor ativo"
+    return "OK NOVO"
 
+@app.route("/teste")
+def teste():
+    return "ROTA OK"
+
+# =========================
+# TESTE ELEVENLABS
+# =========================
 @app.route("/teste-eleven")
 def teste_eleven():
     api_key = os.getenv("ELEVEN_API_KEY")
@@ -23,28 +40,30 @@ def teste_eleven():
     }
 
     data = {
-        "text": "Teste simples de áudio funcionando",
+        "text": "Teste simples funcionando",
         "model_id": "eleven_multilingual_v2"
     }
 
-    try:
-        response = requests.post(url, json=data, headers=headers)
+    response = requests.post(url, json=data, headers=headers)
 
-        debug = {
-            "status": response.status_code,
-            "content_type": response.headers.get("Content-Type"),
-            "bytes": len(response.content),
-            "preview": response.text[:200]
-        }
+    debug = {
+        "status": response.status_code,
+        "content_type": response.headers.get("Content-Type"),
+        "bytes": len(response.content),
+        "preview": response.text[:200]
+    }
 
-        # salva o arquivo SEM validação (para inspeção)
-        with open("teste.mp3", "wb") as f:
-            f.write(response.content)
+    # salva arquivo para validar
+    nome = f"{uuid.uuid4().hex}.mp3"
+    caminho = os.path.join(AUDIO_DIR, nome)
 
-        return jsonify(debug)
+    with open(caminho, "wb") as f:
+        f.write(response.content)
 
-    except Exception as e:
-        return {"erro": str(e)}
+    return jsonify(debug)
 
+# =========================
+# RUN
+# =========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
