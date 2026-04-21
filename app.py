@@ -24,13 +24,11 @@ AUDIO_DIR = "static/audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
 # =========================
-# 🧹 LIMPA ÁUDIOS
+# 🧹 LIMPAR ÁUDIOS
 # =========================
 def limpar_audios():
     for f in os.listdir(AUDIO_DIR):
-        caminho = os.path.join(AUDIO_DIR, f)
-        if os.path.isfile(caminho):
-            os.remove(caminho)
+        os.remove(os.path.join(AUDIO_DIR, f))
 
 # =========================
 # 🎙️ CONFIG NARRADORES
@@ -48,7 +46,43 @@ NARRADORES = {
 }
 
 # =========================
-# 🧹 COMANDOS
+# 🧠 MÓDULO INGLÊS (PROFESSOR)
+# =========================
+def professor_ingles(mensagem):
+    prompt = f"""
+Você é um professor de inglês extremamente direto e prático.
+
+REGRAS:
+- Corrija erros
+- Explique de forma simples
+- Dê 2 exemplos
+- Seja curto
+
+FORMATO:
+
+Correção:
+...
+
+Explicação:
+...
+
+Exemplos:
+1.
+2.
+
+Pergunta:
+{mensagem}
+"""
+
+    chat = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return chat.choices[0].message.content
+
+# =========================
+# 🧹 COMANDOS VOZ
 # =========================
 def aplicar_comandos(texto):
     comandos = {
@@ -83,19 +117,15 @@ async def gerar_edge(texto, arquivo, config):
 </speak>
 """
 
-    communicate = edge_tts.Communicate(
-        ssml,
-        voice=config["voice"]
-    )
-
+    communicate = edge_tts.Communicate(ssml, voice=config["voice"])
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVEN (COM PROTEÇÃO)
+# 🔥 ELEVEN (COM FALLBACK)
 # =========================
 def gerar_eleven(texto, caminho):
     if not ELEVEN_API_KEY:
-        raise Exception("API Eleven não configurada")
+        raise Exception("Sem API Eleven")
 
     url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
 
@@ -112,19 +142,16 @@ def gerar_eleven(texto, caminho):
     response = requests.post(url, json=data, headers=headers)
 
     if response.status_code != 200:
-        raise Exception(f"Eleven erro: {response.status_code}")
+        raise Exception("Erro Eleven")
 
     if "audio" not in response.headers.get("Content-Type", ""):
-        raise Exception("Resposta inválida (não é áudio)")
-
-    if len(response.content) < 2000:
-        raise Exception("Áudio inválido")
+        raise Exception("Resposta inválida")
 
     with open(caminho, "wb") as f:
         f.write(response.content)
 
 # =========================
-# 🔁 GERADOR COM FALLBACK
+# 🔁 GERADOR ÁUDIO
 # =========================
 def gerar_audio(texto, config):
     limpar_audios()
@@ -132,23 +159,17 @@ def gerar_audio(texto, config):
     nome = f"{uuid.uuid4().hex}.mp3"
     caminho = os.path.join(AUDIO_DIR, nome)
 
-    # EDGE direto
     if config["type"] == "edge":
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(gerar_edge(texto, caminho, config))
         loop.close()
 
-    # ELEVEN com fallback
     elif config["type"] == "eleven":
         try:
             gerar_eleven(texto, caminho)
-        except Exception as e:
-            print("Eleven falhou:", e)
-
-            # 🔴 FALLBACK AUTOMÁTICO
+        except:
             fallback = NARRADORES["br"]
-
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             loop.run_until_complete(gerar_edge(texto, caminho, fallback))
@@ -157,7 +178,7 @@ def gerar_audio(texto, config):
     return f"/static/audio/{nome}"
 
 # =========================
-# 🧠 ASSISTENTE
+# 🧠 ASSISTENTE PRINCIPAL
 # =========================
 @app.route("/")
 def home():
@@ -167,45 +188,59 @@ def home():
 def perguntar():
     mensagem = request.form.get("mensagem")
 
-    try:
-        chat = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": "Você é um assistente direto."},
-                {"role": "user", "content": mensagem}
-            ]
-        )
+    chat = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "system", "content": "Assistente direto e útil"},
+            {"role": "user", "content": mensagem}
+        ]
+    )
 
-        resposta = chat.choices[0].message.content
-        audio = gerar_audio(resposta, NARRADORES["br"])
+    resposta = chat.choices[0].message.content
+    audio = gerar_audio(resposta, NARRADORES["br"])
 
-        return jsonify({
-            "resposta": resposta,
-            "audio": audio
-        })
-
-    except Exception as e:
-        return jsonify({"erro": str(e)})
+    return jsonify({
+        "resposta": resposta,
+        "audio": audio
+    })
 
 # =========================
-# 🎙️ NARRADOR
+# 🎓 EDUCAÇÃO (INGLÊS)
+# =========================
+@app.route("/ingles", methods=["POST"])
+def ingles():
+    mensagem = request.form.get("mensagem")
+
+    resposta = professor_ingles(mensagem)
+    audio = gerar_audio(resposta, NARRADORES["br"])
+
+    return jsonify({
+        "resposta": resposta,
+        "audio": audio
+    })
+
+# =========================
+# 🎙️ NARRADOR PAGE
+# =========================
+@app.route("/narrador")
+def narrador_page():
+    return render_template("narrador.html")
+
+# =========================
+# 🎙️ NARRAR
 # =========================
 @app.route("/narrar", methods=["POST"])
 def narrar():
     mensagem = request.form.get("mensagem")
     modo = request.form.get("modo", "br")
 
-    try:
-        config = NARRADORES.get(modo, NARRADORES["br"])
-        audio = gerar_audio(mensagem, config)
+    config = NARRADORES.get(modo, NARRADORES["br"])
+    audio = gerar_audio(mensagem, config)
 
-        return jsonify({
-            "resposta": mensagem,
-            "audio": audio
-        })
-
-    except Exception as e:
-        return jsonify({"erro": str(e)})
+    return jsonify({
+        "resposta": mensagem,
+        "audio": audio
+    })
 
 # =========================
 if __name__ == "__main__":
