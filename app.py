@@ -9,11 +9,17 @@ import requests
 
 app = Flask(__name__)
 
+# =========================
 # 🔑 API KEYS
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# =========================
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
 
+client = Groq(api_key=GROQ_API_KEY)
+
+# =========================
 # 📁 ÁUDIOS
+# =========================
 AUDIO_DIR = "static/audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
@@ -38,23 +44,11 @@ NARRADORES = {
     },
     "br_11": {
         "type": "eleven"
-    },
-    "en_gb": {
-        "type": "edge",
-        "voice": "en-GB-RyanNeural",
-        "rate": "-5%",
-        "pitch": "+2%"
-    },
-    "en_us": {
-        "type": "edge",
-        "voice": "en-US-GuyNeural",
-        "rate": "+3%",
-        "pitch": "+3%"
     }
 }
 
 # =========================
-# 🎙️ COMANDOS (PAUSAS)
+# 🎙️ COMANDOS
 # =========================
 def aplicar_comandos(texto):
     comandos = {
@@ -97,38 +91,43 @@ async def gerar_edge(texto, arquivo, config):
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVENLABS (HTTP DIRETO)
+# 🔥 ELEVENLABS DIRETO
 # =========================
 def gerar_eleven(texto, caminho):
     if not ELEVEN_API_KEY:
         raise Exception("ELEVEN_API_KEY não configurada")
 
+    if not ELEVEN_API_KEY.startswith("sk-"):
+        raise Exception("API KEY inválida")
+
     url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
 
     headers = {
-        "xi-api-key": ELEVEN_API_KEY,
+        "xi-api-key": ELEVEN_API_KEY.strip(),
+        "Accept": "audio/mpeg",
         "Content-Type": "application/json"
     }
 
     data = {
         "text": texto,
-        "model_id": "eleven_multilingual_v2",
-        "voice_settings": {
-            "stability": 0.4,
-            "similarity_boost": 0.8
-        }
+        "model_id": "eleven_monolingual_v1"
     }
 
     response = requests.post(url, json=data, headers=headers)
 
+    # 🔴 ERRO REAL
     if response.status_code != 200:
-        raise Exception(f"Erro ElevenLabs: {response.text}")
+        raise Exception(f"ElevenLabs ERRO: {response.status_code} - {response.text}")
+
+    # 🔴 GARANTE ÁUDIO REAL
+    if len(response.content) < 1000:
+        raise Exception("ElevenLabs não retornou áudio válido")
 
     with open(caminho, "wb") as f:
         f.write(response.content)
 
 # =========================
-# 🔁 GERADOR UNIFICADO
+# 🔁 GERADOR
 # =========================
 def gerar_audio(texto, config):
     limpar_audios()
@@ -162,7 +161,7 @@ def perguntar():
         chat = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "Você é um assistente por voz direto e natural."},
+                {"role": "system", "content": "Você é um assistente por voz direto."},
                 {"role": "user", "content": mensagem}
             ]
         )
@@ -179,7 +178,7 @@ def perguntar():
         return jsonify({"erro": str(e)})
 
 # =========================
-# 🎙️ PÁGINA NARRADOR
+# 🎙️ NARRADOR PAGE
 # =========================
 @app.route("/narrador")
 def narrador_page():
@@ -196,18 +195,19 @@ def narrar():
     try:
         config = NARRADORES.get(modo, NARRADORES["br"])
 
-        resposta = mensagem  # 🔒 literal
+        resposta = mensagem
 
         audio = gerar_audio(resposta, config)
 
         return jsonify({
             "resposta": resposta,
-            "audio": audio,
-            "modo": modo
+            "audio": audio
         })
 
     except Exception as e:
-        return jsonify({"erro": str(e)})
+        return jsonify({
+            "erro": str(e)
+        })
 
 # =========================
 if __name__ == "__main__":
