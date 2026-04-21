@@ -5,7 +5,6 @@ import asyncio
 import uuid
 import os
 import re
-import requests
 
 app = Flask(__name__)
 
@@ -13,8 +12,6 @@ app = Flask(__name__)
 # 🔑 API KEYS
 # =========================
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
-
 client = Groq(api_key=GROQ_API_KEY)
 
 # =========================
@@ -24,7 +21,7 @@ AUDIO_DIR = "static/audio"
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
 # =========================
-# 🧹 LIMPA ÁUDIOS
+# 🧹 LIMPAR ÁUDIOS
 # =========================
 def limpar_audios():
     for f in os.listdir(AUDIO_DIR):
@@ -33,22 +30,18 @@ def limpar_audios():
             os.remove(caminho)
 
 # =========================
-# 🎙️ CONFIG NARRADORES
+# 🎙️ CONFIG NARRADOR
 # =========================
 NARRADORES = {
     "br": {
-        "type": "edge",
         "voice": "pt-BR-AntonioNeural",
         "rate": "+5%",
         "pitch": "+5%"
-    },
-    "br_11": {
-        "type": "eleven"
     }
 }
 
 # =========================
-# 🧹 COMANDOS
+# 🧹 COMANDOS DE VOZ
 # =========================
 def aplicar_comandos(texto):
     comandos = {
@@ -70,7 +63,7 @@ def aplicar_comandos(texto):
     return resultado
 
 # =========================
-# 🔊 EDGE TTS
+# 🔊 GERAR ÁUDIO (EDGE)
 # =========================
 async def gerar_edge(texto, arquivo, config):
     texto = aplicar_comandos(texto)
@@ -90,10 +83,7 @@ async def gerar_edge(texto, arquivo, config):
 
     await communicate.save(arquivo)
 
-# =========================
-# 🔁 GERADOR ÁUDIO
-# =========================
-def gerar_audio(texto, config):
+def gerar_audio(texto):
     limpar_audios()
 
     nome = f"{uuid.uuid4().hex}.mp3"
@@ -101,7 +91,7 @@ def gerar_audio(texto, config):
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(gerar_edge(texto, caminho, config))
+    loop.run_until_complete(gerar_edge(texto, caminho, NARRADORES["br"]))
     loop.close()
 
     return f"/static/audio/{nome}"
@@ -121,13 +111,13 @@ def perguntar():
         chat = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "Você é um assistente direto."},
+                {"role": "system", "content": "Assistente direto e útil"},
                 {"role": "user", "content": mensagem}
             ]
         )
 
         resposta = chat.choices[0].message.content
-        audio = gerar_audio(resposta, NARRADORES["br"])
+        audio = gerar_audio(resposta)
 
         return jsonify({
             "resposta": resposta,
@@ -138,23 +128,18 @@ def perguntar():
         return jsonify({"erro": str(e)})
 
 # =========================
-# 🎙️ NARRADOR PAGE
+# 🎙️ NARRADOR
 # =========================
 @app.route("/narrador")
 def narrador_page():
     return render_template("narrador.html")
 
-# =========================
-# 🎙️ NARRAR
-# =========================
 @app.route("/narrar", methods=["POST"])
 def narrar():
     mensagem = request.form.get("mensagem")
-    modo = request.form.get("modo", "br")
 
     try:
-        config = NARRADORES.get(modo, NARRADORES["br"])
-        audio = gerar_audio(mensagem, config)
+        audio = gerar_audio(mensagem)
 
         return jsonify({
             "resposta": mensagem,
@@ -162,9 +147,7 @@ def narrar():
         })
 
     except Exception as e:
-        return jsonify({
-            "erro": str(e)
-        })
+        return jsonify({"erro": str(e)})
 
 # =========================
 # 🎓 MÓDULO EDUCAÇÃO (BASE)
@@ -177,18 +160,29 @@ def executar_modulo_educacao(modulo, mensagem):
     return "Módulo não encontrado"
 
 # =========================
-# 🎓 ROTA EDUCAÇÃO
+# 🎓 EDUCAÇÃO (API)
 # =========================
 @app.route("/educacao", methods=["POST"])
 def educacao():
     mensagem = request.form.get("mensagem")
     modulo = request.form.get("modulo", "ingles")
 
-    resposta = executar_modulo_educacao(modulo, mensagem)
+    try:
+        resposta = executar_modulo_educacao(modulo, mensagem)
 
-    return jsonify({
-        "resposta": resposta
-    })
+        return jsonify({
+            "resposta": resposta
+        })
+
+    except Exception as e:
+        return jsonify({"erro": str(e)})
+
+# =========================
+# 🎓 EDUCAÇÃO (PÁGINA TESTE)
+# =========================
+@app.route("/educacao-page")
+def educacao_page():
+    return render_template("educacao.html")
 
 # =========================
 if __name__ == "__main__":
