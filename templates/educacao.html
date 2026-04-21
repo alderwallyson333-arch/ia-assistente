@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Módulo Educação</title>
+</head>
+<body>
+
+<h2>Teste Módulo Educação</h2>
+
+<textarea id="mensagem" placeholder="Digite aqui..." rows="4" cols="50"></textarea>
+<br><br>
+
+<select id="modulo">
+    <option value="ingles">Inglês</option>
+</select>
+
+<br><br>
+
+<button onclick="enviar()">Enviar</button>
+
+<h3>Resposta:</h3>
+<pre id="resposta"></pre>
+
+<script>
+async function enviar() {
+    const mensagem = document.getElementById("mensagem").value;
+    const modulo = document.getElementById("modulo").value;
+
+    const response = await fetch("/educacao", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+            mensagem: mensagem,
+            modulo: modulo
+        })
+    });
+
+    const data = await response.json();
+
+    if (data.erro) {
+        document.getElementById("resposta").innerText = "ERRO: " + data.erro;
+    } else {
+        document.getElementById("resposta").innerText = data.resposta;
+    }
+}
+</script>
+
+</body>
+</html>
