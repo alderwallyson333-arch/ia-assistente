@@ -15,6 +15,9 @@ app = Flask(__name__)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ELEVEN_API_KEY = os.getenv("ELEVEN_API_KEY")
 
+if not GROQ_API_KEY:
+    raise Exception("GROQ_API_KEY não configurada")
+
 client = Groq(api_key=GROQ_API_KEY)
 
 # =========================
@@ -48,7 +51,7 @@ NARRADORES = {
 }
 
 # =========================
-# 🎙️ COMANDOS
+# 🧹 COMANDOS
 # =========================
 def aplicar_comandos(texto):
     comandos = {
@@ -91,14 +94,11 @@ async def gerar_edge(texto, arquivo, config):
     await communicate.save(arquivo)
 
 # =========================
-# 🔥 ELEVENLABS DIRETO
+# 🔥 ELEVENLABS (CORRIGIDO)
 # =========================
 def gerar_eleven(texto, caminho):
     if not ELEVEN_API_KEY:
         raise Exception("ELEVEN_API_KEY não configurada")
-
-    if not ELEVEN_API_KEY.startswith("sk-"):
-        raise Exception("API KEY inválida")
 
     url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
 
@@ -109,19 +109,28 @@ def gerar_eleven(texto, caminho):
     }
 
     data = {
-        "text": texto,
-        "model_id": "eleven_monolingual_v1"
+        "text": texto.strip(),
+        "model_id": "eleven_multilingual_v2"
     }
 
     response = requests.post(url, json=data, headers=headers)
 
-    # 🔴 ERRO REAL
+    # 🔴 DEBUG REAL (vai aparecer no Render logs)
+    print("STATUS:", response.status_code)
+    print("HEADERS:", response.headers)
+
     if response.status_code != 200:
         raise Exception(f"ElevenLabs ERRO: {response.status_code} - {response.text}")
 
-    # 🔴 GARANTE ÁUDIO REAL
-    if len(response.content) < 1000:
-        raise Exception("ElevenLabs não retornou áudio válido")
+    content_type = response.headers.get("Content-Type", "")
+
+    # 🔴 GARANTE QUE É ÁUDIO REAL
+    if "audio" not in content_type:
+        raise Exception(f"Resposta inválida (não é áudio): {response.text[:200]}")
+
+    # 🔴 BLOQUEIA FALSO POSITIVO
+    if len(response.content) < 2000:
+        raise Exception("Áudio inválido ou muito pequeno")
 
     with open(caminho, "wb") as f:
         f.write(response.content)
@@ -142,7 +151,10 @@ def gerar_audio(texto, config):
         loop.close()
 
     elif config["type"] == "eleven":
-        gerar_eleven(texto, caminho)
+        try:
+            gerar_eleven(texto, caminho)
+        except Exception as e:
+            raise Exception(f"Falha ElevenLabs: {str(e)}")
 
     return f"/static/audio/{nome}"
 
@@ -194,20 +206,24 @@ def narrar():
 
     try:
         config = NARRADORES.get(modo, NARRADORES["br"])
-
-        resposta = mensagem
-
-        audio = gerar_audio(resposta, config)
+        audio = gerar_audio(mensagem, config)
 
         return jsonify({
-            "resposta": resposta,
+            "resposta": mensagem,
             "audio": audio
         })
 
     except Exception as e:
-        return jsonify({
-            "erro": str(e)
-        })
+        return jsonify({"erro": str(e)})
+
+# =========================
+# 🧪 TESTE DIRETO ELEVEN
+# =========================
+@app.route("/teste-eleven")
+def teste_eleven():
+    caminho = os.path.join(AUDIO_DIR, "teste.mp3")
+    gerar_eleven("Teste direto funcionando", caminho)
+    return {"ok": True}
 
 # =========================
 if __name__ == "__main__":
